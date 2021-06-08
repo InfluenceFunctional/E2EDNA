@@ -1,0 +1,7 @@
+water.xyz
+../params/amber99.prm
+19
+NWATERS
+XX,YY,ZZ
+Y
+../params/amber99.prm
