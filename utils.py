@@ -6,8 +6,9 @@ import numpy as np
 import MDAnalysis as mda
 import glob
 import argparse
-#from pdbconversion import *
-from shutil import copyfile
+import MDAnalysis.analysis.distances as distances
+import scipy.ndimage as ndimage
+
 
 
 def customPDBConversion(pdb,xyz,atomNumSource):
@@ -125,17 +126,6 @@ def removetwo(target):
         raise ValueError
 
 
-def replaceText(file, old_string, new_string):
-    # search and replace text in a file, then save the new version
-    f = open(file, 'r')
-    text = f.read()
-    f.close()
-    text = text.replace(old_string, new_string)
-    f = open(file, 'w')
-    f.write(text)
-    f.close()
-
-
 def copyLine(file,line_number):
     # copy a line of text from a file and return it
     f = open(file, 'r')
@@ -186,6 +176,25 @@ def killPeriodicInfo(arcfile):
     f.close()
 
 
+def getPeriodicInfo(xyzfile):
+    '''
+    extract the box dimensions from a Tinker xyz file or arcfile
+    :param xyzfile:
+    :return: [xdim, ydim, zdim]
+    '''
+    f = open(xyzfile,'r')
+    text = f.read()
+    f.close()
+    lines = text.split('\n')
+    periodicInfo = lines[1]
+    periodicInfo = periodicInfo.split('.')
+    xdim = float(periodicInfo[0][-3:])
+    ydim = float(periodicInfo[1][-3:])
+    zdim = float(periodicInfo[2][-3:])
+
+    return [xdim, ydim, zdim]
+
+
 def getFinalFrame(archivePath, structure):
     '''
     use MDA to find out how many frames there are in the arc file
@@ -198,7 +207,7 @@ def getFinalFrame(archivePath, structure):
     frames = str(u.trajectory.n_frames)
     replaceText('grablastframe.in', 'XXX', arc)
     replaceText('grablastframe.in', 'FRAME', frames) # customize .in file
-    os.system(archivePath + ' < grablastframe.in > outfiles/framegrabber.out')
+    os.system(archivePath + ' < grablastframe.in > outfiles/lastFrameGrab.out')
     replaceText('grablastframe.in', frames, 'FRAME') # reset .in file
     replaceText('grablastframe.in', arc, 'XXX')
     #os.rename(arc,'equil_'+arc) # rename trajectory
@@ -217,6 +226,33 @@ def getFinalFrame(archivePath, structure):
         raise ValueError('Missing a structure!')
 
 
+def getAFrame(archivePath, structure, frame):
+    '''
+    then use tinker to extract a given frame (with frame number < 1000)
+    :param structure:
+    :return:
+    '''
+    arc = structure.split(".xyz")[0] + '.arc'
+    replaceText('grablastframe.in', 'XXX', arc)
+    replaceText('grablastframe.in', 'FRAME', frame)  # customize .in file
+    os.system(archivePath + ' < grablastframe.in > outfiles/framegrabber.out')
+    replaceText('grablastframe.in', frame, 'FRAME')  # reset .in file
+    replaceText('grablastframe.in', arc, 'XXX')
+    # os.rename(arc,'equil_'+arc) # rename trajectory
+    flen = len(frame)
+    if flen == 1:
+        framestr = str('00' + frame)
+    elif flen == 2:
+        framestr = str('0' + frame)
+    elif flen == 3:
+        framestr = frame
+    if os.path.exists(structure):
+        if os.path.exists(structure.split('xyz')[0] + framestr):
+            os.rename(structure.split('xyz')[0] + framestr, 'grabbedFrame.xyz')  # rename # will work up to 999 steps
+    else:
+        raise ValueError('Missing a structure!')
+
+
 def coarsenArcfile(mm_file,arcfile,frameNum):
     '''
     generate an arcfile with a certain maximum number of frames to reduce overall file size
@@ -224,7 +260,6 @@ def coarsenArcfile(mm_file,arcfile,frameNum):
     :param arcfile:
     :return:
     '''
-    #frameNum = 20
     if 'amber' in mm_file:
         waterO = ' 2001'
         waterH = ' 2002'
@@ -237,7 +272,10 @@ def coarsenArcfile(mm_file,arcfile,frameNum):
     noSolvent = noSolvent.select_atoms("not type" +waterH)
 
     traj_length = u.trajectory.__len__()
-    deltaStep = traj_length // frameNum
+    if frameNum == 0: # if the input is 0, just take all the frames
+        deltaStep = 1
+    else:
+        deltaStep = traj_length // frameNum
     if deltaStep >= 1:
         pass
     elif deltaStep < 1:
@@ -512,3 +550,94 @@ def findTXYZEndSoluteEnd(structure,MM_params):
             aa = 1
 
     return max_solute_index
+
+
+def saveOutputs(params,reactionCoordinates):
+    '''
+    save simulation outputs
+    :return:
+    '''
+    outputs = {}
+    outputs['reaction coordinates'] = reactionCoordinates
+    outputs['params'] = params
+    np.save('bindingOutputs', outputs) # do these first in case the analysis fails
+
+    timeEq, potEq, kinEq = getTinkerEnergy('outfiles/complex_to_equil.xyz_equil.out') # get time series, potential and kinetic energies
+    timeSa, potSa, kinSa = getTinkerEnergy('outfiles/complex_to_sample.xyz_sampling.out')
+
+    outputs['time equil'] = timeEq
+    outputs['pot equil'] = potEq
+    outputs['kin equil'] = kinEq
+    outputs['time sampling'] = timeSa
+    outputs['pot sampling'] = potSa
+    outputs['kin sampling'] = kinSa
+    outputs['reaction coordinates'] = reactionCoordinates
+    outputs['params'] = params
+    np.save('bindingOutputs', outputs) # unpack with np.load('bindingOutputs.npy',allow_pickle=True) then outputs=outputs.item()
+
+
+def minimaAnalysis(rcTrajectories,freeEnergies,freeEnergyAxes):
+    '''
+    analyze free energy profiles and isolate the separate and joint minima
+    a more sophisticated approach would be to model the joint multidimensional free energy distribution
+    rather than assuming separate linear contributions
+    :param rcTrajectories:
+    :param freeEnergies:
+    :param freeEnergyAxes:
+    :return:
+    '''
+    # identify free energy minima
+    freeEnergyMinima = np.zeros(len(freeEnergies))
+    for i in range(len(freeEnergies)):
+        freeEnergyMinima[i] = freeEnergyAxes[i][np.argmin(freeEnergies[i])]
+
+    # identify RC trajectory frames which come within xx% of the minima
+    cutoff = 0.1  # criteria for being 'inside' the minima
+    minimaFrames = np.zeros((len(rcTrajectories), len(freeEnergies)))
+    for i in range(len(freeEnergies)):
+        minimaFrames[:, i] = (np.abs(rcTrajectories[:, i] - freeEnergyMinima[i]) / freeEnergyMinima[0]) < cutoff
+
+    jointMinima = np.nonzero((np.sum(minimaFrames, axis=1) == len(freeEnergies)).astype(int))  # find the frames which simultaneously satisfy all the criteria
+    # with thorough sampling, would could more rigorously do this via multidimensional free energy analysis using histogramdd
+    return jointMinima
+
+
+def extractTrajectory(trajectory, reactionCoordinates, boxSize, equilibrationTime):
+    '''
+    ONLY FOR THE 'REPRESENTATIVE STRUCTURE' BINDING RUNS
+    :param trajectory:
+    :return:
+    '''
+    u = mda.Universe(trajectory)  # load up the trajectory for analysis
+    # do
+    # some
+    # analysis
+
+    rcTrajectories = np.zeros((u.trajectory.n_frames,len(reactionCoordinates))) # initialize RC trajectories
+
+    tt = 0
+    for ts in u.trajectory: # for each frame
+        if tt > equilibrationTime:
+            for i in range(len(reactionCoordinates)): # for each reaction coordinate
+                d1 = u.atoms.select_atoms('index %d'%reactionCoordinates[i][0]) # atom 1
+                d2 = u.atoms.select_atoms('index %d'%reactionCoordinates[i][1]) # atom 2
+                rcTrajectories[tt, i] = distances.dist(d1,d2,box=(boxSize[0],boxSize[1],boxSize[2],90,90,90))[-1] # 'box' information accounts for periodicity - assuming cubic periodicity
+
+        tt+= 1
+
+    return rcTrajectories
+
+
+def getFreeEnergy(trajectory,sigma):
+    '''
+    use histogramming and gaussian smoothing to generate free energy profile from a given trajectory
+    :param trajectory:
+    :return:
+    '''
+    pop, edges = np.histogram(trajectory, bins=100)
+    bin_mids = edges[0:-1] + np.diff(edges)
+    freeEnergy = -np.log(ndimage.gaussian_filter1d(pop/np.sum(pop), sigma))
+
+    return bin_mids,freeEnergy
+
+
