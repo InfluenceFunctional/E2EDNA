@@ -53,11 +53,11 @@ elif params['device'] == 'local':
 
 # Simulation parameters
 params['simulation type'] = 'free aptamer' # 'free aptamer', 'binding' or 'analysis' - note that for 'binding' we require a pre-positioned 'repStructure.xyz' and optionally binding coordinates
-params['reaction coordinates'] = [[1,2],[3,4],[5,6]] # key pairs of atom indices whose distances we will monitor and analyze
+params['reaction coordinates'] = [[26,213],[53,185]] # key pairs of atom indices whose distances we will monitor and analyze
 params['force field'] = 'AMOEBA' # AMOEBA is only working force-field. Can be updated to run with other Tinker force-fields.
 params['target'] = 'UTP-4' # analyte molecule - note parameters will not transfer between force-fields
 params['minimization gradrms'] = 0.05 # flag that minimization is converged 0.1-0.01 is ok usually
-params['equilibration time'] = 0.1 # equilibration time in nanoseconds
+params['equilibration time'] = 1 # equilibration time in nanoseconds
 params['sampling time'] = 10 # sampling time in nanoseconds
 params['time step'] = 2.0 # in fs
 params['num charges'] = 4 # number of positive charges (Na+) to add to simulation box to counter the analyte. For a positive analyte, must change the neutralization protocol to add anions.
@@ -67,7 +67,7 @@ params['print step'] = 10 # printout step in ps - note: optional function 'getFi
 params['heavy hydrogen'] = False # True or False - yes means hydrogens have extra mass (hydrogen mass repartitioning), allowing, in theory, longer time-steps up to 3-4 fs
 params['outisde secondary structure'] = False # skip seqfold and use a secondary structure manually coded as a list in a relevant .npy file
 
-# analyte placement
+# analyte placement - only relevant if 'simulation type' is 'binding'
 params['analyte position'] = 'random' # 'random' - will be at least 2 nm from the aptamer in one of 8 cubic directions, 'manual' places the aptamer center at the given coordinates relative to origin
 if params['analyte position'] == 'manual':
     params['analyte coordinates'] = [10, 10, 10] # places analyte [X, Y, Z] angstroms from the origin
@@ -90,8 +90,7 @@ if params['device'] == 'local': # paths on local device
     params['workdir'] = 'C:/Users\mikem\Desktop/tinkerruns'
     # MacroMolecule builder executable and utilities
     params['mmb'] = 'C:/Users/mikem/Desktop/Installer.2_14.Windows/MMB.2_14.exe'
-    params['mmb params'] = 'lib/MMB/parameters.csv'
-    params['mmb template'] = 'lib/MMB/commands.template.dat'
+
 elif params['device'] == 'cluster':
     params['minimize path'] = 'sh ~/projects/def-simine/programs/tinker9/bin/cc70/gpu-m/minimize9.sh'
     params['dynamic path'] = 'sh ~/projects/def-simine/programs/tinker9/bin/cc70/gpu-m/dynamic9.sh'
@@ -100,8 +99,12 @@ elif params['device'] == 'cluster':
     params['archive path'] = '~/projects/def-simine/programs/tinker8/archive'
     params['workdir'] = '/home/kilgourm/scratch/simruns' # specify your working directory here
     params['mmb'] = '~/projects/def-simine/programs/MMB/Installer.2_14.Linux64/MMB.2_14.Linux64'
-    params['mmb params'] = 'lib/MMB/parameters.csv'
-    params['mmb template'] = 'lib/MMB/commands.template.dat'
+
+
+# copy over MMB files
+params['mmb params'] = 'lib/MMB/parameters.csv'
+params['mmb template'] = 'lib/MMB/commands.template.dat'
+
 
 # find analyte-specific files
 if params['force field'] == 'AMOEBA':
@@ -117,7 +120,6 @@ if params['force field'] == 'AMOEBA':
     params['addSodium'] = 'lib/infiles/addSodium.in'
     params['addChloride'] = 'lib/infiles/addChloride.in'
     params['origin'] = 'lib/infiles/origin.in'
-    params['mmb template'] = 'lib/commands.template.dat'
 
     if params['target'] == 'UTP-4':
         params['analyte xyz'] = 'lib/UTP-4/UTP-4.xyz'
@@ -137,12 +139,12 @@ if params['force field'] == 'AMOEBA':
 
 
 if __name__ == '__main__': # run e2edna
-    sequence =  'CGCTTTGCG' # minimal hairpin
-    binder = e2edna(sequence, params)
+    sequence =  'GCTTTGC' # minimal hairpin
+    e2edna = e2edna(sequence, params)
     if params['simulation type'] == 'free aptamer':
         reactionCoordinates = e2edna.runFreeAptamer() # retrieve reaction coordinates from free aptamer trajectory
     elif params['simulation type'] == 'binding':
         reactionCoordinates = e2edna.runBinding() # retrieve reaction coordinates from binding complex trajectory
     elif params['simulation type'] == 'analysis': # just run trajectory analysis if we've already run sampling
-        reactionCoordinates = e2edna.trajectoryAnalysis('complex', params['reaction coordinates'], 100, 5)
+        reactionCoordinates = e2edna.trajectoryAnalysis('complex', params['reaction coordinates'], 10, 5)
     saveOutputs(params,reactionCoordinates)

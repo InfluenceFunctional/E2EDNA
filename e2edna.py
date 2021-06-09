@@ -23,7 +23,7 @@ class e2edna():
         set simulation parameters in keyfiles
         move to relevant directory
         '''
-        if not os.path.exists(self.params['workdir'] + 'params/amoebabio18.prm'): # all runs share a params directory - make sure it exists
+        if not os.path.exists(self.params['workdir'] + '/params/amoebabio18.prm'): # all runs share a params directory - make sure it exists
             copyfile('lib/params/amoebabio18.prm',self.params['workdir'] + '/params/')
 
         if (self.params['explicit run enumeration'] == True) or (self.params['run num'] == 0):
@@ -218,7 +218,7 @@ class e2edna():
 
             # in the same step compute the binding
             print('Compute Binding')
-            analysisDict = self.trajectoryAnalysis('sequence',self.params['reaction coordinates'], 100, 5) # output a binding score
+            analysisDict = self.trajectoryAnalysis('sequence',self.params['reaction coordinates'], 10, 5) # output a binding score
             getAFrame(self.params['archive path'], 'complex_sampled.arc', analysisDict['representativeFrames'][-1]) # save the last representative frame
             os.rename('grabbedFrame.xyz','representativeSequence.xyz')
             writeCheckpoint('Got Binding Score')
@@ -292,7 +292,7 @@ class e2edna():
 
             # in the same step compute the binding
             print('Compute Binding')
-            analysisDict = self.trajectoryAnalysis('complex', self.params['reaction coordinates'], 100, 5) # output a binding score
+            analysisDict = self.trajectoryAnalysis('complex', self.params['reaction coordinates'], 10, 5) # output a binding score
             writeCheckpoint('Got Binding Score')
 
             return analysisDict
