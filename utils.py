@@ -560,7 +560,7 @@ def saveOutputs(params,reactionCoordinates):
     outputs = {}
     outputs['reaction coordinates'] = reactionCoordinates
     outputs['params'] = params
-    np.save('bindingOutputs', outputs) # do these first in case the analysis fails
+    np.save('e2ednaOutputs', outputs) # do these first in case the analysis fails
 
     timeEq, potEq, kinEq = getTinkerEnergy('outfiles/complex_to_equil.xyz_equil.out') # get time series, potential and kinetic energies
     timeSa, potSa, kinSa = getTinkerEnergy('outfiles/complex_to_sample.xyz_sampling.out')
@@ -573,7 +573,7 @@ def saveOutputs(params,reactionCoordinates):
     outputs['kin sampling'] = kinSa
     outputs['reaction coordinates'] = reactionCoordinates
     outputs['params'] = params
-    np.save('bindingOutputs', outputs) # unpack with np.load('bindingOutputs.npy',allow_pickle=True) then outputs=outputs.item()
+    np.save('e2ednaOutputs', outputs) # unpack with np.load('e2ednaOutputs.npy',allow_pickle=True) then outputs=outputs.item()
 
 
 def minimaAnalysis(rcTrajectories,freeEnergies,freeEnergyAxes):

@@ -24,33 +24,37 @@ seqfold==0.7.7
 * Install appropriate MacroMoleculeBuilder for your system from [SimTK here](https://simtk.org/projects/rnatoolbox) - old and new versions have been tested and seem to work
 * Install Tinker from [here](https://github.com/tinkertools) or [here](https://dasher.wustl.edu/tinker/). Tinker9 with GPU support is recommended, but somewhat more involved to install. Tinker8 binaries can be easily downloaded.
 * Create working directory where runs will take place
-* Set paths in main.py
+* Set paths in main.py. Note, there is a toggle for running on a 'local' machine vs 'cluster', with distinct paths.
 ```
-* minimize, dynamic, pdbxyz, xyzedit, archive --> all set to the Tinker executables
-* mmb --> set to the MacroMoleculeBuilder executable
-* workdir --> the working directory created in the previous step
-* analyte --> the analyte structure in tinker .xyz format
+* params['minimize', 'dynamic', 'pdbxyz', 'xyzedit', 'archive'] --> all set to the Tinker executables on your system
+* params['mmb'] --> set to the MacroMoleculeBuilder executable on your system
+* params['workdir'] --> the working directory created in the previous step
+* params['analyte xyz'] --> path to the analyte structure in tinker .xyz format
 * various .key files --> parameters may be specific to your analyte if custom force-field parameters are required. Adjust keyfiles accordingly, leaving the keywords on top as-is.
 ```
 	
 ## RUNNING A JOB
-* set 'run num' to zero for a fresh run, or if you want to pick-up on a previous run, put its number here 
-  - using argparse, one can directly set this via command line from sub.sh rather than editing aptamerBinding.py itself
-* Simulation parameters
-  - note that AMOEBA and AMBER are possible, though AMBER is a work-in-progress in some ways
-  - minimization gradrms - the tightness of the minimization routine - 0.1 is good. 1 may be OK but it's on the high side
-  - equilibration time - in ns
-  - samling time - in ns
-  - time step - in fs. If we 1-2ish without heavy-hydrogen. up to 3 or maybe 3.5 with heavy-hydrogen 
-* adjust Keyfiles: All of the other tinker parameters are set in the keyfiles. 
-  - there are also .in files which are basically tinker scripts, and .dat files which define the MMB folding protocol
-* set the DNA sequence as a string to the 'sequence' variable at the bottom of the file. It will use seqfold and MMB to fold it (note, seqfold is pretty conservative, and will generally only recommend high-probability secondary structure, potentially leaving long structureless strings. Also I'm not 100% certain it's pairList function is working, but I have a better one I can sub in when I find
-time to check it.
-* the script will send tinker output files under the workdir/outfiles directory
-* simulation parameters and outputs including energy traces are saved to 'bindingOutputs.npy', which can be reloaded as
-  - outputs = np.load('bindingOutputs.npy',allow_pickle=True)
-  - outputs = outputs.item()
-* Visualizing outputs
-  - note that both VMD and pymol give crazy results if you have the periodic box information left in your .xyz or .arc files. For .xyz you can remove manually. For .arc trajectories, there is a function in binder which removes all periodic information.
-  - one may also plot the energy and analyte-sequence center-of-mass distance with a commented script directly after the output save command
+Before running a job, ensure installation, analyte parameterization and simulation parameters have been set.
+1. Set 'run num' in main.py to zero for a fresh run, which will create a new run directory in your workdir. If you want to pick-up on a previous run, put its number here. 
+   - Using argparse, one can directly set this via command line from a submission script rather than editing main.py itself.
+2. Set simulation parameters in main.py, and select the mode to run in as params['simulation type']. 'free aptamer' runs the aptamer by itself, 'binding' runs a representative structure of the aptamer complexed with the analyte, and 'analysis' redoes reaction coordinate analysis given pre-existing trajectories.
+4. Set the DNA sequence as a FASTA string to the 'sequence' variable at the bottom of main.py.
+5. Run the code, e.g., for run_num = 0
+```
+python main.py --run_num=0
+```
+Inputs and outputs will go to /workdir/run0. In this directory, /outfiles contains outputs for debugging the various processes within the script.
 
+In general, one would run first a 'free aptamer' simulation to retrieve a representaitive 3D structure and confirm the secondary structure stability. Then, one would change the operating mode to 'binding' to assess aptamer-analyte binding.
+6. Simulation parameters and outputs including energy traces are saved to 'e2ednaOutputs.npy', which can be reloaded as
+   - outputs = np.load('e2ednaOutputs.npy',allow_pickle=True).item()
+   
+
+## EXAMPLE
+### System
+
+### Setup
+
+### Structure evaluation
+
+### Binding evaluation

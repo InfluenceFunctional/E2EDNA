@@ -95,7 +95,7 @@ class e2edna():
         # save params to outputs
         outputs = {}
         outputs['params'] = self.params
-        np.save('bindingOutputs', outputs)  # before running - save the inputs
+        np.save('e2ednaOutputs', outputs)  # before running - save the inputs
 
 
     def makeNewWorkingDirectory(self):    # make working directory
