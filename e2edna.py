@@ -464,7 +464,7 @@ class e2edna():
         numSalts = int(saltDensity * xrange * yrange * zrange) # per-angstrom density * volume
 
         # compute number of sodiums to add
-        if self.params['simulation type'] == 'free aptamer':
+        if self.params['simulation type'] == 'free':
             self.params['num charges'] = 0
         nNa = int(numSalts + self.params['num charges']) # add the charges necessary to neutralize the analyte
 

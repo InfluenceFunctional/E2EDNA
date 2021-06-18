@@ -141,7 +141,7 @@ if params['force field'] == 'AMOEBA':
 if __name__ == '__main__': # run e2edna
     sequence =  'GTC'#'GCTTTGC' # minimal hairpin
     e2edna = e2edna(sequence, params)
-    if params['simulation type'] == 'free aptamer':
+    if params['simulation type'] == 'free':
         reactionCoordinates = e2edna.runFreeAptamer() # retrieve reaction coordinates from free aptamer trajectory
     elif params['simulation type'] == 'binding':
         reactionCoordinates = e2edna.runBinding() # retrieve reaction coordinates from binding complex trajectory
