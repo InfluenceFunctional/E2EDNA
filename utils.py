@@ -10,71 +10,6 @@ import MDAnalysis.analysis.distances as distances
 import scipy.ndimage as ndimage
 
 
-
-def customPDBConversion(pdb,xyz,atomNumSource):
-    '''
-    convert pdb's with nonstandard atom-types to tiner xyz format
-    requires also a pdb with the atoms in the same order as the pdb to be converted
-    ########### DOESN'T CORRECTLY CONNECT PHOSPHATES ##################
-    :param pdb:
-    :param xyz:
-    :return:
-    '''
-    # convert pdb to xyz with correct bonds
-    atom_lines = "atom-lines.txt"
-    test_csv = "test.csv"
-
-    read_prm('amoebabio18.prm', atom_lines)
-    try:
-        lines, AMOEBA = fix_params(atom_lines, test_csv)
-    except:
-        pass
-
-    system = load_pdb(pdb, AMOEBA)
-    system = convert_names_AMOEBA(system, lines)
-    write_xyz(system, 'intermediate')
-
-    # now we have to kill the error message
-    replaceText('intermediate.xyz','ATOM TYPE NOT FOUND','')
-
-    # and write the correct atom types
-    # first get them from the original pdb
-    f = open(atomNumSource, 'r')
-    text = f.read()
-    f.close()
-    text = text.split('\n')
-
-    atomNums = []
-    for i in range(len(text)):
-        line = text[i]
-        if 'HETATM' in line:
-            line_split = line.split(' ')
-            ind = 0
-            for j in range(len(line_split)):
-                if line_split[j] != '':
-                    ind += 1
-                    if ind == 4:
-                        atomNums.append(line_split[j])
-
-    # now write them to the xyz
-    f = open('intermediate.xyz', 'r')
-    text = f.read()
-    f.close()
-    text = text.split('\n')
-
-    for i in range(1, len(text) - 1):
-        line = text[i]
-        line = line.replace(' 0 ', ' ' + str(atomNums[i - 1]) + ' ')
-        text[i] = line
-
-    text = "\n".join(text)
-
-    # print the edited xyz
-    f = open(xyz + '.xyz', 'w')
-    f.write(text)
-    f.close()
-
-
 def get_input():
     '''
     get the command line in put for the run-num. defaulting to a new run (0)
@@ -117,6 +52,19 @@ def replaceText(file, old_string, new_string):
     f.close()
 
 
+def replaceLine(file, new_line, line_number):
+    # replace a given line in a file
+    f = open(file, 'r')
+    text = f.read()
+    f.close()
+    lines = text.split('\n')
+    lines[line_number-1] = new_line # replace line ### with the string, indexing from 1
+    text = "\n".join(lines)
+    f = open(file, 'w')
+    f.write(text)
+    f.close()
+
+
 def removetwo(target):
     if os.path.exists(target + "_2"):
         os.remove(target) # delete original
@@ -147,12 +95,13 @@ def addLine(file, string, line_number):
     f.close()
 
 
-def writeCheckpoint(text):
+def writeCheckpoint(text, mode):
     '''
     write some output to the checkpoint file
     :return:
     '''
-    f = open('checkpoint.txt','a')
+    checkpointFile = mode + '_checkpoint.txt'
+    f = open(checkpointFile,'a')
     f.write('\n' + text)
     f.close()
 
@@ -232,13 +181,13 @@ def getAFrame(archivePath, structure, frame):
     :param structure:
     :return:
     '''
-    arc = structure.split(".xyz")[0] + '.arc'
+    frame = str(frame)
+    arc = structure.split(".xyz")[0]
     replaceText('grablastframe.in', 'XXX', arc)
     replaceText('grablastframe.in', 'FRAME', frame)  # customize .in file
     os.system(archivePath + ' < grablastframe.in > outfiles/framegrabber.out')
     replaceText('grablastframe.in', frame, 'FRAME')  # reset .in file
     replaceText('grablastframe.in', arc, 'XXX')
-    # os.rename(arc,'equil_'+arc) # rename trajectory
     flen = len(frame)
     if flen == 1:
         framestr = str('00' + frame)
@@ -247,11 +196,20 @@ def getAFrame(archivePath, structure, frame):
     elif flen == 3:
         framestr = frame
     if os.path.exists(structure):
-        if os.path.exists(structure.split('xyz')[0] + framestr):
-            os.rename(structure.split('xyz')[0] + framestr, 'grabbedFrame.xyz')  # rename # will work up to 999 steps
+        if os.path.exists(structure.split('arc')[0] + framestr):
+            os.rename(structure.split('arc')[0] + framestr, 'grabbedFrame.xyz')  # rename # will work up to 999 steps
     else:
         raise ValueError('Missing a structure!')
 
+
+def killWater(xyzedit, structure):
+    '''
+    delete solvent and salt ions from .txyz box
+    '''
+    replaceText('killWater.in', 'aaa.xyz', structure)  # edit killwater
+    os.system(xyzedit + ' < killWater.in > outfiles/kill_waters_from_sequence.out')  # remove waters
+    replaceText('killWater.in', structure, 'aaa.xyz')  # restore file            writeCheckpoint('Got Binding Score')
+    removetwo(structure)
 
 def coarsenArcfile(mm_file,arcfile,frameNum):
     '''
@@ -562,18 +520,18 @@ def saveOutputs(params,reactionCoordinates):
     outputs['params'] = params
     np.save('e2ednaOutputs', outputs) # do these first in case the analysis fails
 
-    timeEq, potEq, kinEq = getTinkerEnergy('outfiles/complex_to_equil.xyz_equil.out') # get time series, potential and kinetic energies
-    timeSa, potSa, kinSa = getTinkerEnergy('outfiles/complex_to_sample.xyz_sampling.out')
+    #timeEq, potEq, kinEq = getTinkerEnergy('outfiles/complex_to_equil.xyz_equil.out') # get time series, potential and kinetic energies
+    #timeSa, potSa, kinSa = getTinkerEnergy('outfiles/complex_to_sample.xyz_sampling.out')
 
-    outputs['time equil'] = timeEq
-    outputs['pot equil'] = potEq
-    outputs['kin equil'] = kinEq
-    outputs['time sampling'] = timeSa
-    outputs['pot sampling'] = potSa
-    outputs['kin sampling'] = kinSa
-    outputs['reaction coordinates'] = reactionCoordinates
-    outputs['params'] = params
-    np.save('e2ednaOutputs', outputs) # unpack with np.load('e2ednaOutputs.npy',allow_pickle=True) then outputs=outputs.item()
+    #outputs['time equil'] = timeEq
+    #outputs['pot equil'] = potEq
+    #outputs['kin equil'] = kinEq
+    #outputs['time sampling'] = timeSa
+    #outputs['pot sampling'] = potSa
+    #outputs['kin sampling'] = kinSa
+    #outputs['reaction coordinates'] = reactionCoordinates
+    #outputs['params'] = params
+    #np.save('e2ednaOutputs', outputs) # unpack with np.load('e2ednaOutputs.npy',allow_pickle=True) then outputs=outputs.item()
 
 
 def minimaAnalysis(rcTrajectories,freeEnergies,freeEnergyAxes):

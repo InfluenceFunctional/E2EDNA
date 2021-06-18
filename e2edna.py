@@ -13,7 +13,7 @@ class e2edna():
             self.MM_params = '../params/amoebabio18.prm'
 
         self.setup()
-        self.getCheckpoint()
+        self.getCheckpoint(self.params['simulation type'])
 
 
     def setup(self):
@@ -81,6 +81,7 @@ class e2edna():
             copyfile(self.params['origin'], self.workDir + '/origin.in')
             copyfile(self.params['mmb template'], self.workDir + '/commands.template.dat')
 
+
             if self.params['outisde secondary structure']:
                 copyfile('fullPairList.npy', self.workDir + '/fullPairList.npy')
 
@@ -119,20 +120,21 @@ class e2edna():
             os.mkdir(self.workDir)
 
 
-    def getCheckpoint(self):
+    def getCheckpoint(self,mode):
         '''
         use the checkpoint file to identify if any work has been done in this directory, and if so, where to pick up
         :return:
         '''
+        checkpointFile = mode + '_checkpoint.txt'
         try:
-            f = open('checkpoint.txt','r')#if it does, see how long it is
+            f = open(checkpointFile,'r')#if it does, see how long it is
             text = f.read()
             f.close()
             self.checkpoints = len([m.start() for m in re.finditer('\n', text)])
             print("Resuming Run #%d"%int(self.params['run num']))
 
         except:
-            f = open('checkpoint.txt','w')
+            f = open(checkpointFile,'w')
             f.write('Started!\n')
             f.close()
             self.checkpoints = 1
@@ -153,7 +155,7 @@ class e2edna():
                 self.pairList = np.asarray(np.load('fullPairList.npy',allow_pickle=True).item()['list'])
             else:
                 self.ssString, self.pairList = self.getSecondaryStructure(self.sequence) # otherwise predict secondary structure
-            writeCheckpoint("Got Secondary Structure")
+            writeCheckpoint("Got Secondary Structure", self.params['simulation type'])
 
 
         if self.checkpoints < 3: # if we have the secondary structure
@@ -164,7 +166,7 @@ class e2edna():
             else:
                 self.foldSequence(self.sequence, self.pairList)
                 pass
-            writeCheckpoint("Folded Sequence")
+            writeCheckpoint("Folded Sequence", self.params['simulation type'])
 
 
         if self.checkpoints < 4: # if we added the analyte
@@ -172,7 +174,7 @@ class e2edna():
             copyfile('sequence.xyz','sequence_pre_soak.xyz')
             self.soak('sequence.xyz','params_combined.key')
             os.rename('sequence.xyz', 'sequence_soaked.xyz')
-            writeCheckpoint('Sequence Soaked')
+            writeCheckpoint('Sequence Soaked', self.params['simulation type'])
 
 
         if self.checkpoints < 5: # if we have soaked it
@@ -181,7 +183,7 @@ class e2edna():
             copyfile('sequence_soaked.xyz','sequence_to_neutralize.xyz')
             self.neutralize('sequence_soaked.xyz','params_combined.key')
             os.rename('sequence_soaked.xyz','sequence_neutralized.xyz')
-            writeCheckpoint('Sequence Neutralized')
+            writeCheckpoint('Sequence Neutralized', self.params['simulation type'])
 
 
         if self.checkpoints < 6: # if we have neutralized
@@ -189,39 +191,38 @@ class e2edna():
             copyfile('sequence_neutralized.xyz','sequence_to_min.xyz')
             self.minimize('sequence_neutralized.xyz','minimize.key') # minimize the combined structure
             os.rename('sequence_neutralized.xyz','sequence_minimized.xyz')
-            writeCheckpoint('Sequence Minimized')
+            writeCheckpoint('Sequence Minimized', self.params['simulation type'])
 
 
         if self.checkpoints < 7: # if we've minimized the combined structure
             print('Equilibrate Sequence')
             copyfile('sequence_minimized.xyz','sequence_to_equil.xyz')
-            self.equilibrate('sequence_minimized.xyz','equilibrate.key')
-            killPeriodicInfo('sequence_minimized.arc')
-            os.rename('sequence_minimized.xyz','sequence_equil.xyz')
-            os.rename('sequence_minimized.arc','sequence_equil.arc')
+            self.equilibrate('sequence_to_equil.xyz','equilibrate.key')
+            os.rename('sequence_to_equil.xyz','sequence_equil.xyz')
+            os.rename('sequence_to_equil.arc','sequence_equil.arc')
             coarsenArcfile(self.MM_params, 'sequence_equil.arc', 0)
-            writeCheckpoint('Sequence Equilibrated')
+            writeCheckpoint('Sequence Equilibrated', self.params['simulation type'])
 
 
         if self.checkpoints <8: # always run sampling and binding analysis if everything else is done
             print('Run Dynamics')
-            if os.path.exists('sequence_sampled.arc'): # if we already sampled, resample
+            if os.path.exists('sequence_sampled.arc'): # if we already sampled, extend the trajectory
                 pass
             else:
                 copyfile('sequence_equil.xyz','sequence_to_sample.xyz')
-            self.sampling('sequence_equil.xyz','dynamics.key') # sample binding
-            copyfile('sequence_equil.xyz','sequence_sampled.xyz')
-            copyfile('sequence_equil.arc','sequence_sampled.arc')
+            self.sampling('sequence_to_sample.xyz','dynamics.key') # sample binding
+            copyfile('sequence_to_sample.xyz','sequence_sampled.xyz')
+            copyfile('sequence_to_sample.arc','sequence_sampled.arc')
             killPeriodicInfo('sequence_sampled.arc')
             coarsenArcfile(self.MM_params, 'sequence_sampled.arc', 0)
-            writeCheckpoint('Sequence Sampled')
+            writeCheckpoint('Sequence Sampled', self.params['simulation type'])
 
             # in the same step compute the binding
             print('Compute Binding')
-            analysisDict = self.trajectoryAnalysis('sequence',self.params['reaction coordinates'], 10, 5) # output a binding score
-            getAFrame(self.params['archive path'], 'complex_sampled.arc', analysisDict['representativeFrames'][-1]) # save the last representative frame
+            analysisDict = self.trajectoryAnalysis('sequence','coarse_sequence_sampled.arc.xyz',self.params['reaction coordinates'], 10, 5) # output a binding score
+            getAFrame(self.params['archive path'], 'sequence_sampled.arc', analysisDict['representative structure frames'][-1][-1]) # save the last representative frame
             os.rename('grabbedFrame.xyz','representativeSequence.xyz')
-            writeCheckpoint('Got Binding Score')
+            killWater(self.params['xyzedit path'], 'representativeSequence.xyz')
 
             return analysisDict
 
@@ -237,8 +238,8 @@ class e2edna():
             # add the analyte!
             print('Add Analyte')
             self.addAnalyte('representativeSequence.xyz', 'analyte.xyz','params_combined.key')
-            os.rename('sequence.xyz','complex.xyz')
-            writeCheckpoint('Added Analyte')
+            os.rename('representativeSequence.xyz','complex.xyz')
+            writeCheckpoint('Added Analyte', self.params['simulation type'])
 
 
         if self.checkpoints < 3: # if we added the analyte
@@ -246,7 +247,7 @@ class e2edna():
             copyfile('complex.xyz','complex_pre_soak.xyz')
             self.soak('complex.xyz','params_combined.key')
             os.rename('complex.xyz', 'complex_soaked.xyz')
-            writeCheckpoint('Complex Soaked')
+            writeCheckpoint('Complex Soaked', self.params['simulation type'])
 
 
         if self.checkpoints < 4: # if we have soaked it
@@ -255,7 +256,7 @@ class e2edna():
             copyfile('complex_soaked.xyz','complex_to_neutralize.xyz')
             self.neutralize('complex_soaked.xyz','params_combined.key')
             os.rename('complex_soaked.xyz','complex_neutralized.xyz')
-            writeCheckpoint('Complex Neutralized')
+            writeCheckpoint('Complex Neutralized', self.params['simulation type'])
 
 
         if self.checkpoints < 5: # if we have neutralized
@@ -263,37 +264,36 @@ class e2edna():
             copyfile('complex_neutralized.xyz','complex_to_min.xyz')
             self.minimize('complex_neutralized.xyz','minimize.key') # minimize the combined structure
             os.rename('complex_neutralized.xyz','complex_minimized.xyz')
-            writeCheckpoint('Complex Minimized')
+            writeCheckpoint('Complex Minimized', self.params['simulation type'])
 
 
-        if self.checkpoints < 6: # if we've minimized the combined structure
-            print('Equilibrate Complex')
+        if self.checkpoints < 7: # if we've minimized the combined structure
+            print('Equilibrate complex')
             copyfile('complex_minimized.xyz','complex_to_equil.xyz')
-            self.equilibrate('complex_minimized.xyz','equilibrate.key')
-            killPeriodicInfo('complex_minimized.arc')
-            os.rename('complex_minimized.xyz','complex_equil.xyz')
-            os.rename('complex_minimized.arc','complex_equil.arc')
+            self.equilibrate('complex_to_equil.xyz','equilibrate.key')
+            os.rename('complex_to_equil.xyz','complex_equil.xyz')
+            os.rename('complex_to_equil.arc','complex_equil.arc')
             coarsenArcfile(self.MM_params, 'complex_equil.arc', 0)
-            writeCheckpoint('Complex Equilibrated')
+            writeCheckpoint('complex Equilibrated', self.params['simulation type'])
 
 
-        if True: # always run sampling and binding analysis if everything else is done
+        if self.checkpoints <8: # always run sampling and binding analysis if everything else is done
             print('Run Dynamics')
             if os.path.exists('complex_sampled.arc'): # if we already sampled, resample
                 pass
             else:
                 copyfile('complex_equil.xyz','complex_to_sample.xyz')
-            self.sampling('complex_equil.xyz','dynamics.key') # sample binding
-            copyfile('complex_equil.xyz','complex_sampled.xyz')
-            copyfile('complex_equil.arc','complex_sampled.arc')
+            self.sampling('complex_to_sample.xyz','dynamics.key') # sample binding
+            copyfile('complex_to_sample.xyz','complex_sampled.xyz')
+            copyfile('complex_to_sample.arc','complex_sampled.arc')
             killPeriodicInfo('complex_sampled.arc')
             coarsenArcfile(self.MM_params, 'complex_sampled.arc', 0)
-            writeCheckpoint('Complex Sampled')
+            writeCheckpoint('complex Sampled', self.params['simulation type'])
 
             # in the same step compute the binding
             print('Compute Binding')
-            analysisDict = self.trajectoryAnalysis('complex', self.params['reaction coordinates'], 10, 5) # output a binding score
-            writeCheckpoint('Got Binding Score')
+            analysisDict = self.trajectoryAnalysis('complex','coarse_complex_sampled.arc.xyz',self.params['reaction coordinates'], 10, 5) # output a binding score
+            writeCheckpoint('Got Binding Score', self.params['simulation type'])
 
             return analysisDict
 
@@ -587,16 +587,16 @@ class e2edna():
             reruns += 1
 
 
-    def trajectoryAnalysis(self,trajectory,reactionCoordinates,equilibrationTime,sigma):
+    def trajectoryAnalysis(self,type,trajectory,reactionCoordinates,equilibrationTime,sigma):
         '''
         follow a set of reaction coordinates, bin the trajectory and generate a free energy profile
         :param reactionCoordinates: list of pairs of integers representing the atom numbers of desired distances
         :param equilibrationTime: number of frames from the beginning of the trajectory to omit as 'equilibration'
         :return: rcTrajectories, free energy curves and bin centers, 'representative' structures
         '''
-        boxSize = getPeriodicInfo(trajectory + '_to_sample.xyz')
+        boxSize = getPeriodicInfo(type + '_to_sample.xyz')
         # get the trajectories of the various reaction coordinates (atom-atom distances)
-        rcTrajectories = extractTrajectory('coarse_'+ trajectory + '+_sampled.arc.xyz',reactionCoordinates,boxSize,equilibrationTime)
+        rcTrajectories = extractTrajectory(trajectory,reactionCoordinates,boxSize,equilibrationTime)
 
         # convert trajectories into free energy curves
         freeEnergies = []

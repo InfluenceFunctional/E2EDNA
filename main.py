@@ -44,26 +44,26 @@ To-Do:
 params = {}
 
 # Device and working directory
-params['device'] = 'cluster' # 'local' or 'cluster' for testing and deployment, respectively
+params['device'] = 'local' # 'local' or 'cluster' for testing and deployment, respectively
 params['explicit run enumeration'] = False # if True, the next run is fresh, in directory 'run%d'%run_num. If false, regular behaviour. Note: ONLY USE THIS FOR FRESH RUNS
 if params['device'] == 'cluster':
     params['run num'] = get_input() # get run_num from command line, default = 0 (fresh run)
 elif params['device'] == 'local':
-    params['run num'] = 0 # manual setting, for 0, do a fresh run, for != 0, pickup on a previous run.
+    params['run num'] = 128 # manual setting, for 0, do a fresh run, for != 0, pickup on a previous run.
 
 # Simulation parameters
-params['simulation type'] = 'free aptamer' # 'free aptamer', 'binding' or 'analysis' - note that for 'binding' we require a pre-positioned 'repStructure.xyz' and optionally binding coordinates
-params['reaction coordinates'] = [[26,213],[53,185]] # key pairs of atom indices whose distances we will monitor and analyze
+params['simulation type'] = 'analysis' # 'free', 'binding' or 'analysis' - note that for 'binding' we require a pre-positioned 'repStructure.xyz' and optionally binding coordinates
+params['reaction coordinates'] = [[1,2],[3,4]]#[[26,213],[53,185]] # key pairs of atom indices whose distances we will monitor and analyze
 params['force field'] = 'AMOEBA' # AMOEBA is only working force-field. Can be updated to run with other Tinker force-fields.
 params['target'] = 'UTP-4' # analyte molecule - note parameters will not transfer between force-fields
-params['minimization gradrms'] = 0.05 # flag that minimization is converged 0.1-0.01 is ok usually
-params['equilibration time'] = 1 # equilibration time in nanoseconds
-params['sampling time'] = 10 # sampling time in nanoseconds
+params['minimization gradrms'] = 1#0.05 # flag that minimization is converged 0.1-0.01 is ok usually
+params['equilibration time'] = 0.001 # equilibration time in nanoseconds
+params['sampling time'] = 0.001 # sampling time in nanoseconds
 params['time step'] = 2.0 # in fs
 params['num charges'] = 4 # number of positive charges (Na+) to add to simulation box to counter the analyte. For a positive analyte, must change the neutralization protocol to add anions.
 params['NaCl concentration'] = 163 # concentration of NaCl in MD simulation box in mmol - note that seqfold does not allow for modulation of ionic strength in secondary structure prediction, but NUPACK does
 params['box offset'] = 5 # in angstroms box size will be order of longest molecule dimension + 2 * vdW radius + 2 * box offset
-params['print step'] = 10 # printout step in ps - note: optional function 'getFinalFrame' works only with 2-1000 frames in the source trajectory
+params['print step'] = 0.01 # printout step in ps - note: optional function 'getFinalFrame' works only with 2-1000 frames in the source trajectory
 params['heavy hydrogen'] = False # True or False - yes means hydrogens have extra mass (hydrogen mass repartitioning), allowing, in theory, longer time-steps up to 3-4 fs
 params['outisde secondary structure'] = False # skip seqfold and use a secondary structure manually coded as a list in a relevant .npy file
 
@@ -115,7 +115,7 @@ if params['force field'] == 'AMOEBA':
     # tinker utilities - force-field dependent
     params['grablastframe'] = 'lib/infiles/grablastframe.in'
     params['movesomething'] = 'lib/infiles/movesomething.in'
-    params['killWater'] = 'lib/infiles/killWater.in'
+    params['killWater'] = 'lib/infiles/killWater3.in'
     params['addIons'] = 'lib/infiles/addIons.in'
     params['addSodium'] = 'lib/infiles/addSodium.in'
     params['addChloride'] = 'lib/infiles/addChloride.in'
@@ -139,12 +139,12 @@ if params['force field'] == 'AMOEBA':
 
 
 if __name__ == '__main__': # run e2edna
-    sequence =  'GCTTTGC' # minimal hairpin
+    sequence =  'GTC'#'GCTTTGC' # minimal hairpin
     e2edna = e2edna(sequence, params)
     if params['simulation type'] == 'free aptamer':
         reactionCoordinates = e2edna.runFreeAptamer() # retrieve reaction coordinates from free aptamer trajectory
     elif params['simulation type'] == 'binding':
         reactionCoordinates = e2edna.runBinding() # retrieve reaction coordinates from binding complex trajectory
     elif params['simulation type'] == 'analysis': # just run trajectory analysis if we've already run sampling
-        reactionCoordinates = e2edna.trajectoryAnalysis('complex', params['reaction coordinates'], 10, 5)
+        reactionCoordinates = e2edna.trajectoryAnalysis('complex','coarse_complex_sampled.arc.xyz', params['reaction coordinates'], 10, 5)
     saveOutputs(params,reactionCoordinates)
