@@ -209,6 +209,7 @@ class e2edna():
             if os.path.exists('sequence_sampled.arc'): # if we already sampled, extend the trajectory
                 pass
             else:
+                getFinalFrame(self.params['archive path'], 'sequence_equil.xyz') # only works if there are less than 1k frames in equilibration trajectory
                 copyfile('sequence_equil.xyz','sequence_to_sample.xyz')
             self.sampling('sequence_to_sample.xyz','dynamics.key') # sample binding
             copyfile('sequence_to_sample.xyz','sequence_sampled.xyz')
@@ -219,7 +220,7 @@ class e2edna():
 
             # in the same step compute the binding
             print('Compute Binding')
-            analysisDict = self.trajectoryAnalysis('sequence','coarse_sequence_sampled.arc.xyz',self.params['reaction coordinates'], 10, 5) # output a binding score
+            analysisDict = self.trajectoryAnalysis('sequence','coarse_sequence_sampled.arc.xyz',self.params['reaction coordinates'], 0, 2) # output a binding score
             getAFrame(self.params['archive path'], 'sequence_sampled.arc', analysisDict['representative structure frames'][-1][-1]) # save the last representative frame
             os.rename('grabbedFrame.xyz','representativeSequence.xyz')
             killWater(self.params['xyzedit path'], 'representativeSequence.xyz')
@@ -282,7 +283,9 @@ class e2edna():
             if os.path.exists('complex_sampled.arc'): # if we already sampled, resample
                 pass
             else:
+                getFinalFrame(self.params['archive path'], 'complex_equil.xyz') # only works if there are less than 1k frames in equilibration trajectory
                 copyfile('complex_equil.xyz','complex_to_sample.xyz')
+
             self.sampling('complex_to_sample.xyz','dynamics.key') # sample binding
             copyfile('complex_to_sample.xyz','complex_sampled.xyz')
             copyfile('complex_to_sample.arc','complex_sampled.arc')
@@ -292,7 +295,7 @@ class e2edna():
 
             # in the same step compute the binding
             print('Compute Binding')
-            analysisDict = self.trajectoryAnalysis('complex','coarse_complex_sampled.arc.xyz',self.params['reaction coordinates'], 10, 5) # output a binding score
+            analysisDict = self.trajectoryAnalysis('complex','coarse_complex_sampled.arc.xyz',self.params['reaction coordinates'], 0, 2) # output a binding score
             writeCheckpoint('Got Binding Score', self.params['simulation type'])
 
             return analysisDict
@@ -555,7 +558,7 @@ class e2edna():
         finished, missingFrames = checkIfDynamicsFinished(structure, (simTime * 1e3) // printAt)
         while (finished == 0) and (reruns < max_reruns):
             finished, missingFrames = checkIfDynamicsFinished(structure, (simTime*1e3)//printAt)
-            missingTime = (missingFrames // (1e3 * printAt))
+            missingTime = (missingFrames * printAt / 1e3)
             missingSteps = int(missingTime * 1e6 / dt)
             print('Rerunning Equilibration #%d' %reruns)
             os.system(self.params['dynamic path'] + ' ' + structure + ' -k ' + keyfile + ' {} {} {} 2 310 >> outfiles/'.format(missingSteps, dt, printAt) + structure + '_equil.out')
@@ -580,7 +583,7 @@ class e2edna():
         finished, missingFrames = checkIfDynamicsFinished(structure, (simTime * 1e3) // printAt)
         while (finished == 0) and (reruns < max_reruns):
             finished, missingFrames = checkIfDynamicsFinished(structure, (simTime*1e3)//printAt)
-            missingTime = (missingFrames // (1e3 * printAt))
+            missingTime = (missingFrames * printAt / 1e3)
             missingSteps = int(missingTime * 1e6 / dt)
             print('Rerunning Sampling #%d' %reruns)
             os.system(self.params['dynamic path'] + ' ' + structure + ' -k ' + keyfile + ' {} {} {} 2 310 >> outfiles/'.format(missingSteps, dt, printAt) + structure + '_sampling.out')

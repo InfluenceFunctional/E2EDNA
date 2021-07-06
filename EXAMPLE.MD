@@ -14,20 +14,18 @@ params['reaction coordinates'] = [[26,213],[53,185]]
 params['force field'] = 'AMOEBA'
 params['target'] = 'UTP-4' # 
 params['minimization gradrms'] = 0.05
-params['equilibration time'] = 0.01 # equilibration time in nanoseconds
-params['sampling time'] = 0.01 # sampling time in nanoseconds
+params['equilibration time'] = 1 # equilibration time in nanoseconds
+params['sampling time'] = 10 # sampling time in nanoseconds
 params['time step'] = 2.0 # in fs
 params['num charges'] = 4 # number of positive counterions (Na+) to add to simulation box to counter the analyte.
 params['NaCl concentration'] = 163 # in mmol
 params['box offset'] = 5 # in angstroms 
-params['print step'] = 0.1 # printout step in ps 
+params['print step'] = 1 # printout step in ps 
 params['heavy hydrogen'] = False 
 params['outisde secondary structure'] = False 
 
 # analyte placement - only relevant if 'simulation type' is 'binding'
-params['analyte position'] = 'random' # 'random' - will be at least 2 nm from the aptamer in one of 8 cubic directions, 'manual' places the aptamer center at the given coordinates relative to origin
-if params['analyte position'] == 'manual':
-    params['analyte coordinates'] = [10, 10, 10] # places analyte [X, Y, Z] angstroms from the origin
+params['analyte position'] = 'random' # 'random' - will be at least 2 nm from the aptamer in one of 8 cubic face directions, 'manual' places the aptamer center at the given coordinates relative to origin
 
 # AMOEBA parameters
 params['vdW radius'] = 12 # van der Waals radius
@@ -36,6 +34,20 @@ params['polar eps'] = 1e-5 # induced dipole convergence parameter default 1e-6
 params['polar predict'] = True # whether to run with polar-predict or not
 ```
 
-### Structure evaluation
+### Free Aptamer Run
+
+This first run returns the trajectory of the specified reaction coordinates above, in this case corresponding to the expected hydrogen bonding bases.
+We compute the free energy of the system along these coordinates by histogramming the reaction coordinate trajectories, and taking their negative logarithm.
+
+_Reaction Coordinates Histograms and Free Energies_
+
+This is a trivial example, and we can see that, as expected, the paired structure is stable. 
+
+This run will also return a 3D structure, labelled 'representativeStructure.xyz' which lies in the minima of all specified reaction coordinate free energy surfaces.
+This will be the initial aptamer configuration for an eventual binding simulation. 
 
 ### Binding evaluation
+
+_Representative Aptamer Structure Complexed with UTP-4 Analyte_
+
+_Reaction Coordinate Histograms and Free Energies
