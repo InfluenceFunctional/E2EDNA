@@ -165,7 +165,7 @@ def getFinalFrame(archivePath, structure):
         framestr = str('00' + frames)
     elif flen == 2:
         framestr = str('0' + frames)
-    elif flen == 3:
+    elif flen >= 3:
         framestr = frames
     if os.path.exists(structure):
         if os.path.exists(structure.split('xyz')[0] + framestr):
@@ -193,7 +193,7 @@ def getAFrame(archivePath, structure, frame):
         framestr = str('00' + frame)
     elif flen == 2:
         framestr = str('0' + frame)
-    elif flen == 3:
+    elif flen >= 3:
         framestr = frame
     if os.path.exists(structure):
         if os.path.exists(structure.split('arc')[0] + framestr):

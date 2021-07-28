@@ -219,7 +219,7 @@ class e2edna():
             writeCheckpoint('Sequence Sampled', self.params['simulation type'])
 
             # in the same step compute the binding
-            print('Compute Binding')
+            print('Do Analysis')
             analysisDict = self.trajectoryAnalysis('sequence','coarse_sequence_sampled.arc.xyz',self.params['reaction coordinates'], 0, 2) # output a binding score
             getAFrame(self.params['archive path'], 'sequence_sampled.arc', analysisDict['representative structure frames'][-1][-1]) # save the last representative frame
             os.rename('grabbedFrame.xyz','representativeSequence.xyz')

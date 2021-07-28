@@ -63,7 +63,7 @@ params['time step'] = 2.0 # in fs
 params['num charges'] = 4 # number of positive charges (Na+) to add to simulation box to counter the analyte. For a positive analyte, must change the neutralization protocol to add anions.
 params['NaCl concentration'] = 163 # concentration of NaCl in MD simulation box in mmol - note that seqfold does not allow for modulation of ionic strength in secondary structure prediction, but NUPACK does
 params['box offset'] = 5 # in angstroms box size will be order of longest molecule dimension + 2 * vdW radius + 2 * box offset
-params['print step'] = 1.0 # printout step in ps - note: optional function 'getFinalFrame' works only with 2-1000 frames in the source trajectory
+params['print step'] = 1.0 # printout step in ps
 params['heavy hydrogen'] = False # True or False - yes means hydrogens have extra mass (hydrogen mass repartitioning), allowing, in theory, longer time-steps up to 3-4 fs
 params['outisde secondary structure'] = False # skip seqfold and use a secondary structure manually coded as a list in a relevant .npy file
 
