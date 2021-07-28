@@ -1,15 +1,11 @@
+'''
+stand-alone analysis script
+'''
 import numpy as np
 import os
 from seqfold import dg, fold
 from tqdm import tqdm
 from sty import fg, bg, ef, rs
-
-'''
-to-do
-==> automatically remove duplicates
-==> incorporate nupack analysis
-==> make bracket notation for potts
-'''
 
 fastaFile = 'C:/Users\mikem\OneDrive\McGill_Simine\Aptamers\Data/UTP/sequencesUTPtruncated24to85.txt'
 f = open(fastaFile,'r')
@@ -41,19 +37,19 @@ aa = 1
 # take out pair information from the potts model
 pottsList = []
 offset = 23
-def addPottsItem(list,ind1,ind2,offset):
-    list.append([ind1-offset,ind2-offset])
+def addPottsItem(list, ind1, ind2, offset):
+    list.append([ind1-offset, ind2-offset])
     return list
 
-pottsList = addPottsItem(pottsList,48,24,offset)
-pottsList = addPottsItem(pottsList,57,27,offset)
-pottsList = addPottsItem(pottsList,58,26,offset)
-pottsList = addPottsItem(pottsList,59,32,offset)
-pottsList = addPottsItem(pottsList,62,29,offset)
-pottsList = addPottsItem(pottsList,64,24,offset)
-pottsList = addPottsItem(pottsList,67,30,offset)
-pottsList = addPottsItem(pottsList,70,30,offset)
 
+pottsList = addPottsItem(pottsList, 48, 24, offset)
+pottsList = addPottsItem(pottsList, 57, 27, offset)
+pottsList = addPottsItem(pottsList, 58, 26, offset)
+pottsList = addPottsItem(pottsList, 59, 32, offset)
+pottsList = addPottsItem(pottsList, 62, 29, offset)
+pottsList = addPottsItem(pottsList, 64, 24, offset)
+pottsList = addPottsItem(pottsList, 67, 30, offset)
+pottsList = addPottsItem(pottsList, 70, 30, offset)
 
 
 class bcolors:
@@ -72,14 +68,14 @@ def countBaseFrequency(sequences):
     return sequences.count("A"), sequences.count("T"), sequences.count("G"), sequences.count("C")
 
 
-def getSecondaryStructure(sequence):
+def getSecondaryStructure(sequence):  # used in letters2numbers
     '''
     get the secondary structure for a given sequence
     using seqfold here - identical features are available using nupack, though results are sometimes different
     :param sequence:
     :return: a dot-bracket string and list of paired bases (assuming single-strand DNA aptamer)
     '''
-    temperature = 37.0
+    temperature = 37.0  # celcius
     dg(sequence, temp=temperature)  # get energy of the structure
     # print(round(sum(s.e for s in structs), 2)) # predicted energy of the final structure
 
@@ -160,4 +156,4 @@ for i in range(len(seqs)):
     print(i)
     #print('NUString: ' + nuStrings[i].replace('.','-')[0:9] + fg.red + nuStrings[i].replace('.','-')[9:25] + fg.rs + nuStrings[i].replace('.','-')[25:48] + fg.blue + nuStrings[i].replace('.','-')[48:] + fg.rs)
     print('SSString: ' + ssStrings[i].replace('.','-')[0:9] + fg.red + ssStrings[i].replace('.','-')[9:25] + fg.rs + ssStrings[i].replace('.','-')[25:48] + fg.blue + ssStrings[i].replace('.','-')[48:] + fg.rs)
-    print('Sequence: ' + seqs[i].replace('.','-')[0:9] + fg.red + seqs[i].replace('.','-')[9:25] + fg.rs + seqs[i].replace('.','-')[25:48] + fg.blue + seqs[i].replace('.','-')[48:] + fg.rs)
+    print('Sequence: ' + seqs[i].replace('.','-')[0:9] + fg.red + seqs[i].replace('.','-')[9:25] + fg.rs + seqs[i].replace('.','-')[25:48] + fg.blue + seqs[i].replace('.','-')[48:] + fg.rs)    

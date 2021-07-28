@@ -1,5 +1,5 @@
 '''
-utilities
+utilities used by other classes
 '''
 import os
 import numpy as np
@@ -67,8 +67,8 @@ def replaceLine(file, new_line, line_number):
 
 def removetwo(target):
     if os.path.exists(target + "_2"):
-        os.remove(target) # delete original
-        os.rename(target + "_2",target) # append updated
+        os.remove(target)  # delete original
+        os.rename(target + "_2", target)  # append updated
     else:
         print("No _2 structure was made!")
         raise ValueError
@@ -101,7 +101,7 @@ def writeCheckpoint(text, mode):
     :return:
     '''
     checkpointFile = mode + '_checkpoint.txt'
-    f = open(checkpointFile,'a')
+    f = open(checkpointFile, 'a')
     f.write('\n' + text)
     f.close()
 
@@ -113,12 +113,12 @@ def killPeriodicInfo(arcfile):
     :param arcfile:
     :return:
     '''
-    f = open(arcfile,'r')
+    f = open(arcfile, 'r')
     text = f.read()
     f.close()
     lines = text.split('\n')
     periodicInfo = lines[1]
-    lines = list(filter((periodicInfo).__ne__,lines))
+    lines = list(filter((periodicInfo).__ne__, lines))
     text = "\n".join(lines)
     f = open(arcfile, 'w')
     f.write(text)
@@ -131,7 +131,7 @@ def getPeriodicInfo(xyzfile):
     :param xyzfile:
     :return: [xdim, ydim, zdim]
     '''
-    f = open(xyzfile,'r')
+    f = open(xyzfile, 'r')
     text = f.read()
     f.close()
     lines = text.split('\n')
@@ -151,15 +151,15 @@ def getFinalFrame(archivePath, structure):
     :param structure:
     :return:
     '''
-    arc = structure.split(".xyz")[0]+'.arc'
+    arc = structure.split(".xyz")[0] + '.arc'
     u = mda.Universe(arc)
     frames = str(u.trajectory.n_frames)
     replaceText('grablastframe.in', 'XXX', arc)
-    replaceText('grablastframe.in', 'FRAME', frames) # customize .in file
+    replaceText('grablastframe.in', 'FRAME', frames)  # customize .in file
     os.system(archivePath + ' < grablastframe.in > outfiles/lastFrameGrab.out')
-    replaceText('grablastframe.in', frames, 'FRAME') # reset .in file
+    replaceText('grablastframe.in', frames, 'FRAME')  # reset .in file
     replaceText('grablastframe.in', arc, 'XXX')
-    #os.rename(arc,'equil_'+arc) # rename trajectory
+    # os.rename(arc,'equil_'+arc) # rename trajectory
     flen = len(frames)
     if flen == 1:
         framestr = str('00' + frames)
@@ -208,10 +208,11 @@ def killWater(xyzedit, structure):
     '''
     replaceText('killWater.in', 'aaa.xyz', structure)  # edit killwater
     os.system(xyzedit + ' < killWater.in > outfiles/kill_waters_from_sequence.out')  # remove waters
-    replaceText('killWater.in', structure, 'aaa.xyz')  # restore file            writeCheckpoint('Got Binding Score')
+    replaceText('killWater.in', structure, 'aaa.xyz')  # restore file
     removetwo(structure)
 
-def coarsenArcfile(mm_file,arcfile,frameNum):
+
+def coarsenArcfile(mm_file, arcfile, frameNum):
     '''
     generate an arcfile with a certain maximum number of frames to reduce overall file size
     a nice upgrade would be to exclude water
@@ -227,10 +228,10 @@ def coarsenArcfile(mm_file,arcfile,frameNum):
 
     u = mda.Universe(arcfile)
     noSolvent = u.select_atoms("not type" + waterO)
-    noSolvent = noSolvent.select_atoms("not type" +waterH)
+    noSolvent = noSolvent.select_atoms("not type" + waterH)
 
     traj_length = u.trajectory.__len__()
-    if frameNum == 0: # if the input is 0, just take all the frames
+    if frameNum == 0:  # if the input is 0, just take all the frames
         deltaStep = 1
     else:
         deltaStep = traj_length // frameNum
@@ -239,23 +240,23 @@ def coarsenArcfile(mm_file,arcfile,frameNum):
     elif deltaStep < 1:
         deltaStep = 1
 
-    with mda.Writer('coarse_' + arcfile +'.xyz',noSolvent.atoms.n_atoms) as W:
+    with mda.Writer('coarse_' + arcfile + '.xyz', noSolvent.atoms.n_atoms) as W:
         for ts in u.trajectory:
             if (ts.frame % deltaStep) == 0:
                 W.write(noSolvent)
 
 
-def combineTrajectories(file1,file2):
+def combineTrajectories(file1, file2):
     '''
     combine two coarsened xyz trajectories end-to-end and save
     :param file1:
     :param file2:
     :return:
     '''
-    f = open(file1,'r')
+    f = open(file1, 'r')
     text1 = f.read()
     f.close()
-    f = open(file2,'r')
+    f = open(file2, 'r')
     text2 = f.read()
     f.close()
     text = text1[:-1] + text2
@@ -271,7 +272,7 @@ def getTinkerEnergy(outfile):
     :param outfile:
     :return:
     '''
-    f = open(outfile,'r')
+    f = open(outfile, 'r')
     text = f.read()
     f.close()
 
@@ -288,7 +289,7 @@ def getTinkerEnergy(outfile):
             splitLine = line.split(' ')
             for j in range(len(splitLine)):
                 if splitLine[j] == 'Picosecond':
-                    ind = j-1 # the time and word "picosecond" are always separated by one space
+                    ind = j - 1  # the time and word "picosecond" are always separated by one space
                     break
 
             try:
@@ -300,7 +301,7 @@ def getTinkerEnergy(outfile):
             splitLine = line.split(' ')
             for j in range(len(splitLine)):
                 if splitLine[j] == 'Kcal/mole':
-                    ind = j-1 # the energy and unit are always separated by one space
+                    ind = j - 1  # the energy and unit are always separated by one space
                     break
 
             try:
@@ -395,7 +396,7 @@ def evaluateBinding(trajectory):
     '''
 
 
-def trajAnalysis(trajectory,analyte):
+def trajAnalysis(trajectory, analyte):
     '''
     evaluate the docking trajectory to determine whether the DNA binds to the analyte
     also whether the DNA rearranges at critical base pairing sites
@@ -411,11 +412,11 @@ def trajAnalysis(trajectory,analyte):
     # works for xyz or arcfiles
     # also track UTP distance from binding sites
     # standard lengths in a watson-crick helix for each bond are in the 1.7-1.8 A range
-    dist1 = [] # mid-loop pair dist 28-33
-    dist2 = [] # right loop pair dist 10-25
-    dist3 = [] # left loop pair dist 9-35
-    dist4 = [] # utp-top binding site ~13
-    dist5 = [] # utp-left binding site ~36
+    dist1 = []  # mid-loop pair dist 28-33
+    dist2 = []  # right loop pair dist 10-25
+    dist3 = []  # left loop pair dist 9-35
+    dist4 = []  # utp-top binding site ~13
+    dist5 = []  # utp-left binding site ~36
     for ts in u.trajectory:
         d1_1 = u.atoms.select_atoms('index 889').center_of_geometry() # base 28 - guanine ring amino proton
         d1_2 = u.atoms.select_atoms('index 1049').center_of_geometry() # base 33 - thymine ring amino proton
@@ -427,10 +428,9 @@ def trajAnalysis(trajectory,analyte):
         d3_2 = u.atoms.select_atoms('index 1110').center_of_geometry() # base 35 - adenine ring amino
 
 
-
-        dist1.append(np.linalg.norm(d1_1-d1_2))
-        dist2.append(np.linalg.norm(d2_1-d2_2))
-        dist3.append(np.linalg.norm(d3_1-d3_2))
+        dist1.append(np.linalg.norm(d1_1 - d1_2))
+        dist2.append(np.linalg.norm(d2_1 - d2_2))
+        dist3.append(np.linalg.norm(d3_1 - d3_2))
 
         if analyte == True: # for false - just analyze the DNA
             d4_1 = u.atoms.select_atoms('index 1365').center_of_geometry()  # utp ribose ring oxygen
@@ -438,8 +438,8 @@ def trajAnalysis(trajectory,analyte):
 
             d5_1 = u.atoms.select_atoms('index 1365').center_of_geometry()  # utp ribose ring oxygen
             d5_2 = u.atoms.select_atoms('index 1139').center_of_geometry()  # base 36 - cytosine ring nitrogen
-            dist4.append(np.linalg.norm(d4_1-d4_2))
-            dist5.append(np.linalg.norm(d5_1-d5_2))
+            dist4.append(np.linalg.norm(d4_1 - d4_2))
+            dist5.append(np.linalg.norm(d5_1 - d5_2))
 
 
     '''
@@ -468,7 +468,7 @@ def rolling_mean(input, run):
     return output
 
 
-def findTXYZEndSoluteEnd(structure,MM_params):
+def findTXYZEndSoluteEnd(structure, MM_params):
     '''
     find the final line of a tinker xyz file, to append ions
     :return: the line number
@@ -510,7 +510,7 @@ def findTXYZEndSoluteEnd(structure,MM_params):
     return max_solute_index
 
 
-def saveOutputs(params,reactionCoordinates):
+def saveOutputs(params, reactionCoordinates):
     '''
     save simulation outputs
     :return:
@@ -534,7 +534,7 @@ def saveOutputs(params,reactionCoordinates):
     #np.save('e2ednaOutputs', outputs) # unpack with np.load('e2ednaOutputs.npy',allow_pickle=True) then outputs=outputs.item()
 
 
-def minimaAnalysis(rcTrajectories,freeEnergies,freeEnergyAxes):
+def minimaAnalysis(rcTrajectories, freeEnergies, freeEnergyAxes):
     '''
     analyze free energy profiles and isolate the separate and joint minima
     a more sophisticated approach would be to model the joint multidimensional free energy distribution
@@ -567,26 +567,24 @@ def extractTrajectory(trajectory, reactionCoordinates, boxSize, equilibrationTim
     :return:
     '''
     u = mda.Universe(trajectory)  # load up the trajectory for analysis
-    # do
-    # some
-    # analysis
+    # do some analysis
 
     rcTrajectories = np.zeros((u.trajectory.n_frames,len(reactionCoordinates))) # initialize RC trajectories
 
     tt = 0
-    for ts in u.trajectory: # for each frame
+    for ts in u.trajectory:  # for each frame
         if tt > equilibrationTime:
             for i in range(len(reactionCoordinates)): # for each reaction coordinate
                 d1 = u.atoms.select_atoms('index %d'%reactionCoordinates[i][0]) # atom 1
                 d2 = u.atoms.select_atoms('index %d'%reactionCoordinates[i][1]) # atom 2
                 rcTrajectories[tt, i] = distances.dist(d1,d2,box=(boxSize[0],boxSize[1],boxSize[2],90,90,90))[-1] # 'box' information accounts for periodicity - assuming cubic periodicity
 
-        tt+= 1
+        tt += 1
 
     return rcTrajectories
 
 
-def getFreeEnergy(trajectory,sigma):
+def getFreeEnergy(trajectory, sigma):
     '''
     use histogramming and gaussian smoothing to generate free energy profile from a given trajectory
     :param trajectory:
@@ -594,8 +592,6 @@ def getFreeEnergy(trajectory,sigma):
     '''
     pop, edges = np.histogram(trajectory, bins=100)
     bin_mids = edges[0:-1] + np.diff(edges)
-    freeEnergy = -np.log(ndimage.gaussian_filter1d(pop/np.sum(pop), sigma))
+    freeEnergy = -np.log(ndimage.gaussian_filter1d(pop / np.sum(pop), sigma))
 
-    return bin_mids,freeEnergy
-
-
+    return bin_mids, freeEnergy
