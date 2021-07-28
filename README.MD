@@ -40,11 +40,12 @@ Before running a job, ensure installation, analyte parameterization and simulati
 2. Set simulation parameters in main.py, and select the mode to run in as params['simulation type']. 'free aptamer' runs the aptamer by itself, 'binding' runs a representative structure of the aptamer complexed with the analyte, and 'analysis' redoes reaction coordinate analysis given pre-existing trajectories.
 4. Set the DNA sequence as a FASTA string to the 'sequence' variable at the bottom of main.py.
 5. Run the code, e.g., for run_num = 0
-```
-python main.py --run_num=0
-```
-Inputs and outputs will go to /workdir/run0. In this directory, /outfiles contains outputs for debugging the various processes within the script.
+   ```
+   python main.py --run_num=0
+   ```
+   Inputs and outputs will go to /workdir/run0. In this directory, /outfiles contains outputs for debugging the various processes within the script.
 
-In general, one would run first a 'free aptamer' simulation to retrieve a representaitive 3D structure and confirm the secondary structure stability. Then, one would change the operating mode to 'binding' to assess aptamer-analyte binding.
+   In general, one would run first a 'free aptamer' simulation to retrieve a representaitive 3D structure and confirm the secondary structure stability. 
+   Then, one would change the operating mode to 'binding' to assess aptamer-analyte binding.
 6. Simulation parameters and outputs including energy traces are saved to 'e2ednaOutputs.npy', which can be reloaded as
    - outputs = np.load('e2ednaOutputs.npy',allow_pickle=True).item()

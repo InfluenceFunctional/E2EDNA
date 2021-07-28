@@ -3,10 +3,10 @@
 ## EXAMPLE
 Here is an example of executing this code on a minimal system.
 ### System
-For speed and simplicity, we will look at a tiny hairpin, GCTTTGC, and asses it's binding with UTP(-4) in PBS at 310K.
+For speed and simplicity, we will look at a tiny ssDNA strand, GCTTTGC, and asses it's binding with UTP(-4) in PBS at 310K.
 
 ### Setup
-We will use our default settings, and track the distances between bases which are expected to pair (1-7 and 2-6) as our reaction coordinates. 
+We will use our default settings, and track the distances between bases which may be expected to pair (1-7 and 2-6) as our reaction coordinates. 
 The specific atoms to follow in these bases must be determined manually by users.
 ```
 # Simulation parameters
@@ -36,15 +36,36 @@ params['polar predict'] = True # whether to run with polar-predict or not
 
 ### Free Aptamer Run
 
-This first run returns the trajectory of the specified reaction coordinates above, in this case corresponding to the expected hydrogen bonding bases.
-We compute the free energy of the system along these coordinates by histogramming the reaction coordinate trajectories, and taking their negative logarithm.
+This first run returns the trajectory of the specified reaction coordinates above, in this case corresponding to the expected hydrogen bonding bases. 
+We can load and visualize the trajectories like so.
 
-_Reaction Coordinates Histograms and Free Energies_
+```
+import numpy as np
+import matplotlib.pyplot as plt
+outputs = np.load('e2ednaOutputs.npy',allow_pickle=True).item()
+plt.clf()
+plt.plot(np.linspace(0,10,2000),outputs['reaction coordinates']['reaction coordinate trajectories'][:,0],label='RC1')
+plt.plot(np.linspace(0,10,2000),outputs['reaction coordinates']['reaction coordinate trajectories'][:,1],label='RC2')
+plt.xlabel('Time (ns)')
+plt.ylabel('RC Distance (Angstroms')
+plt.title('RC Distance Trajectories')
+plt.legend()
+```
 
-This is a trivial example, and we can see that, as expected, the paired structure is stable. 
 
-This run will also return a 3D structure, labelled 'representativeStructure.xyz' which lies in the minima of all specified reaction coordinate free energy surfaces.
-This will be the initial aptamer configuration for an eventual binding simulation. 
+![Reaction Coordinate Trajectories](https://i.imgur.com/CcxtDSx.png)
+
+The hairpin here is so small that, while bases 1 and 7 do pair and remain in close proximity, 2 and 6 detach. 
+The representative structure is then this somewhat deformed pseudo-pin. 
+
+![Representative Structure](https://i.imgur.com/0t2CLgX.png)
+
+This run will return a 3D structure, labelled 'representativeStructure.xyz' which lies in the minima of all specified reaction coordinate free energy surfaces.
+This will be the initial aptamer configuration for an eventual binding simulation.
+
+Leaving 'explicit run enumeration' = False and using the run number from the previous free aptamer simulation, one has only to rerun the code in 'binding' mode. 
+One may also optionally assign new reaction coordinates to follow, and/or a specific location for the analyte, if desired. 
+We will proceed with a randomly initialized analyte position.
 
 ### Binding evaluation
 
