@@ -3,6 +3,8 @@
 Michael Kilgour, Tao Liu, Lena Simine
 mjakilgour gmail com
 
+Please consult and cite the related publication if using our code: **J. Chem. Inf. Model. 2021, 61, 9, 4139–4144** (https://doi.org/10.1021/acs.jcim.1c00696)
+
 ## INSTALLATION
 * Get the repository
 ```
