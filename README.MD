@@ -3,7 +3,9 @@
 Michael Kilgour, Tao Liu, Lena Simine
 mjakilgour gmail com
 
-Please consult and cite the related publication if using our code: **J. Chem. Inf. Model. 2021, 61, 9, 4139–4144** (https://doi.org/10.1021/acs.jcim.1c00696)
+* If using our code, please consult and cite the following publication: **J. Chem. Inf. Model. 2021, 61, 9, 4139–4144** (https://doi.org/10.1021/acs.jcim.1c00696)
+
+* For an updated version (E2EDNA 2.0) implemented using OpenMM, please go to: https://github.com/siminegroup/E2EDNA2
 
 ## INSTALLATION
 * Get the repository
